@@ -6,16 +6,17 @@ The app tracks Singapore locations and stores the latest weather snapshot for ea
 
 ## Tech Stack
 
-| Layer        | Tools                                                                 |
-| ------------ | --------------------------------------------------------------------- |
-| Backend      | Node.js, TypeScript, Express                                          |
-| Frontend     | React 18, Vite, Tailwind CSS                                          |
-| Dev URL      | Portless named `.localhost` URLs                                      |
-| External API | Singapore data.gov.sg (`api-open.data.gov.sg`)                        |
-| Storage      | SQLite database at `backend/weather.db`, accessed through Drizzle ORM |
+| Layer        | Tools                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| Backend      | Node.js 22, TypeScript, Express                                                          |
+| Frontend     | React 18, Vite, Tailwind CSS                                                             |
+| Dev URL      | Portless named `.localhost` URLs (local) or port 3000 forwarded via SSH (devcontainer)   |
+| External API | Singapore data.gov.sg (`api-open.data.gov.sg`)                                           |
+| Storage      | SQLite database at `backend/weather.db`, accessed through Drizzle ORM                   |
 
 ## Architecture
 
+**Local development (Portless)**
 ```mermaid
 flowchart LR
     A["Browser<br/>http://weather-starter.localhost:1355"] --> B["Portless proxy"]
@@ -24,9 +25,20 @@ flowchart LR
     C -->|External API| E["data.gov.sg API<br/>api-open.data.gov.sg"]
 ```
 
+**Devcontainer / remote development**
+```mermaid
+flowchart LR
+    A["Browser<br/>http://localhost:3000"] --> B["VS Code SSH tunnel"]
+    B --> C["Express + Vite middleware<br/>port 3000 · HOST=0.0.0.0"]
+    C --> D["SQLite database<br/>backend/weather.db"]
+    C -->|External API| E["data.gov.sg API<br/>api-open.data.gov.sg"]
+```
+
 The backend and frontend run as one Node process in development. Express serves `/api/*`, and Vite middleware serves the React app. The frontend uses relative `/api` requests, so there is no frontend/backend port configuration.
 
 ## Quick Start
+
+### Local development
 
 Install dependencies:
 
@@ -46,18 +58,25 @@ This project runs Portless on an unprivileged local proxy port by default, so no
 http://weather-starter.localhost:1355
 ```
 
+### Devcontainer (VS Code)
+
+A `.devcontainer` configuration is included. Open the project in VS Code and choose **Reopen in Container** when prompted, or run the **Dev Containers: Reopen in Container** command. VS Code will build the container, install dependencies, and start the dev server automatically on port 3000.
+
+> **Note:** Node.js 22 is required because `db.ts` uses the built-in `node:sqlite` module (available from Node 22.5). The devcontainer image provides this automatically.
+
 ## Useful Commands
 
 ```bash
-npm run dev      # Start Express + Vite through Portless
-npm run build    # Build the frontend and compile backend TypeScript
-npm run start    # Run the compiled production server
-npm test         # Run backend API tests
-npm run test:watch # Run backend API tests in watch mode
-npm run doctor   # Verify /health and /api/locations
-npm run reset    # Remove the local SQLite database
-npm run db:generate # Generate Drizzle migrations after schema changes
-npm run db:migrate  # Apply Drizzle migrations to backend/weather.db
+npm run dev          # Start Express + Vite through Portless (local)
+npm run dev:container  # Start Express + Vite directly on port 3000 (devcontainer / no Portless)
+npm run build        # Build the frontend and compile backend TypeScript
+npm run start        # Run the compiled production server
+npm test             # Run backend API tests
+npm run test:watch   # Run backend API tests in watch mode
+npm run doctor       # Verify /health and /api/locations
+npm run reset        # Remove the local SQLite database
+npm run db:generate  # Generate Drizzle migrations after schema changes
+npm run db:migrate   # Apply Drizzle migrations to backend/weather.db
 ```
 
 ## API
@@ -73,7 +92,13 @@ npm run db:migrate  # Apply Drizzle migrations to backend/weather.db
 Create a location:
 
 ```bash
+# Local (Portless)
 curl -s -X POST http://weather-starter.localhost:1355/api/locations \
+  -H "Content-Type: application/json" \
+  -d '{"latitude": 1.35, "longitude": 103.85}'
+
+# Devcontainer
+curl -s -X POST http://localhost:3000/api/locations \
   -H "Content-Type: application/json" \
   -d '{"latitude": 1.35, "longitude": 103.85}'
 ```
@@ -81,7 +106,11 @@ curl -s -X POST http://weather-starter.localhost:1355/api/locations \
 Refresh weather:
 
 ```bash
+# Local (Portless)
 curl -s -X POST http://weather-starter.localhost:1355/api/locations/1/refresh
+
+# Devcontainer
+curl -s -X POST http://localhost:3000/api/locations/1/refresh
 ```
 
 ## Data Flow
@@ -97,6 +126,10 @@ The app does not call the external weather API on every page load. It uses a sna
 
 ```text
 weather-starter/
+├── .devcontainer/
+│   └── devcontainer.json              # VS Code devcontainer config (Node 22, port 3000)
+├── .vscode/
+│   └── tasks.json                     # Auto-starts dev server in a named terminal panel
 ├── backend/
 │   ├── drizzle/                       # Generated Drizzle SQL migrations
 │   ├── package.json
@@ -169,7 +202,7 @@ Add a `DELETE /api/locations/:id` endpoint and a delete button to each card in `
 
 ### 2. Geolocation + auto-detect
 
-Add a "Use my location" button that detects the user's position, finds the nearest Singapore forecast area, and adds it automatically. Works on local development origins; if you need HTTPS, run Portless with `PORTLESS_HTTPS=1`.
+Add a "Use my location" button that detects the user's position, finds the nearest Singapore forecast area, and adds it automatically. Works on local development origins; if you need HTTPS locally, run Portless with `PORTLESS_HTTPS=1`. In a devcontainer, VS Code's forwarded port is treated as a secure context by the browser, so geolocation works without extra configuration.
 
 | Layer    | What to do                                                                          |
 | -------- | ----------------------------------------------------------------------------------- |
