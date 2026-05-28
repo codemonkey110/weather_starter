@@ -1,0 +1,38 @@
+{
+  "name": "Weather Starter",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+
+  // Install deps on first create, skipping Husky (no bare-metal git hooks in container)
+  "postCreateCommand": "HUSKY=0 npm install",
+
+  // Start the dev server every time the container starts
+  "postStartCommand": "npm run dev:container",
+
+  // Bind the Express+Vite server to 0.0.0.0 so VS Code can tunnel it
+  "remoteEnv": {
+    "HOST": "0.0.0.0"
+  },
+
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Weather App",
+      "onAutoForward": "openBrowser"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "christian-kohler.npm-intellisense"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}
