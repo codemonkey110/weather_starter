@@ -9,7 +9,7 @@ The app tracks Singapore locations and stores the latest weather snapshot for ea
 | Layer        | Tools                                                                                    |
 | ------------ | ---------------------------------------------------------------------------------------- |
 | Backend      | Node.js 22, TypeScript, Express                                                          |
-| Frontend     | React 18, Vite, Tailwind CSS                                                             |
+| Frontend     | React 18, Vite, Tailwind CSS, Leaflet / React Leaflet                                   |
 | Dev URL      | Portless named `.localhost` URLs (local) or port 3000 forwarded via SSH (devcontainer)   |
 | External API | Singapore data.gov.sg (`api-open.data.gov.sg`)                                           |
 | Storage      | SQLite database at `backend/weather.db`, accessed through Drizzle ORM                   |
@@ -88,6 +88,7 @@ npm run db:migrate   # Apply Drizzle migrations to backend/weather.db
 | `POST` | `/api/locations`             | Create a location              |
 | `GET`  | `/api/locations/:id`         | Get a single location          |
 | `POST` | `/api/locations/:id/refresh` | Refresh weather for a location |
+| `POST` | `/api/logs`                  | Log a frontend interaction     |
 
 Create a location:
 
@@ -169,16 +170,19 @@ weather-starter/
 
 All endpoints are on `https://api-open.data.gov.sg`. No API key is required for basic usage, but you may hit rate limits during heavy development.
 
-| Endpoint                                       | Docs                                                                                        | Notes                                                                                         |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `GET /v2/real-time/api/two-hr-forecast`        | [2-hour Forecast](https://data.gov.sg/datasets/d_3f9e064e25005b0e42969944ccaf2e7a/view)     | Used by this app. Response includes `area_metadata` and area forecasts.                       |
-| `GET /v2/real-time/api/air-temperature`        | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Temperature in Celsius from weather stations.                                                 |
-| `GET /v2/real-time/api/relative-humidity`      | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Humidity percentage from weather stations.                                                    |
-| `GET /v2/real-time/api/rainfall`               | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Rainfall in mm from weather stations.                                                         |
-| `GET /v2/real-time/api/wind-speed`             | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Wind speed in knots from weather stations.                                                    |
-| `GET /v2/real-time/api/wind-direction`         | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Wind direction in degrees from weather stations.                                              |
-| `GET /v1/environment/24-hour-weather-forecast` | [Weather Forecast](https://data.gov.sg/collections/weather-forecast/view)                   | 24-hour forecast broken into time periods. Different response shape from the 2-hour endpoint. |
-| `GET /v1/environment/4-day-weather-forecast`   | [Weather Forecast](https://data.gov.sg/collections/weather-forecast/view)                   | 4-day outlook with temperature ranges and forecast text.                                      |
+| Endpoint                                            | Docs                                                                                        | Notes                                                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET /v2/real-time/api/two-hr-forecast`             | [2-hour Forecast](https://data.gov.sg/datasets/d_3f9e064e25005b0e42969944ccaf2e7a/view)     | Used by this app. Response includes `area_metadata` and area forecasts.                            |
+| `GET /v2/real-time/api/air-temperature`             | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Temperature in Celsius from weather stations.                                                      |
+| `GET /v2/real-time/api/relative-humidity`           | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Humidity percentage from weather stations.                                                         |
+| `GET /v2/real-time/api/rainfall`                    | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Rainfall in mm from weather stations.                                                              |
+| `GET /v2/real-time/api/wind-speed`                  | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Wind speed in knots from weather stations.                                                         |
+| `GET /v2/real-time/api/wind-direction`              | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | Wind direction in degrees from weather stations.                                                   |
+| `GET /v2/real-time/api/uv`                          | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | UV index (nationwide).                                                                             |
+| `GET /v2/real-time/api/psi`                         | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | PSI (24-hour) by region.                                                                           |
+| `GET /v2/real-time/api/pm25`                        | [Realtime Weather Readings](https://data.gov.sg/collections/realtime-weather-readings/view) | PM2.5 (1-hour) by region.                                                                          |
+| `GET /v2/real-time/api/twenty-four-hr-forecast`     | [Weather Forecast](https://data.gov.sg/collections/weather-forecast/view)                   | 24-hour forecast broken into time periods by region. Different response shape from the 2-hour API. |
+| `GET /v1/environment/4-day-weather-forecast`        | [Weather Forecast](https://data.gov.sg/collections/weather-forecast/view)                   | 4-day outlook with temperature ranges and forecast text.                                           |
 
 Optional API key:
 
